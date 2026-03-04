@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#161b22"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="totalFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#79c0ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#79c0ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="200" height="120" rx="8" fill="url(#bg)"/>
+  <!-- Grid -->
+  <line x1="20" y1="95" x2="190" y2="95" stroke="#30363d" stroke-width="0.5"/>
+  <line x1="20" y1="70" x2="190" y2="70" stroke="#30363d" stroke-width="0.5"/>
+  <line x1="20" y1="45" x2="190" y2="45" stroke="#30363d" stroke-width="0.5"/>
+  <line x1="20" y1="20" x2="190" y2="20" stroke="#30363d" stroke-width="0.5"/>
+  <!-- Axes -->
+  <line x1="20" y1="15" x2="20" y2="100" stroke="#30363d" stroke-width="1"/>
+  <line x1="20" y1="70" x2="190" y2="70" stroke="#30363d" stroke-width="0.3" stroke-dasharray="3,3"/>
+  <!-- Level component (flat line) - beta0 -->
+  <line x1="25" y1="38" x2="185" y2="38" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+  <text x="188" y="36" fill="#58a6ff" font-family="system-ui" font-size="7" opacity="0.7">Level</text>
+  <!-- Slope component (declining from high to zero) - beta1 -->
+  <path d="M25,80 Q50,74 70,68 Q100,60 130,56 Q155,54 185,52" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+  <text x="188" y="50" fill="#3fb950" font-family="system-ui" font-size="7" opacity="0.7">Slope</text>
+  <!-- Curvature component (humped shape starting at 0, peaking, returning to 0) -->
+  <path d="M25,70 Q40,65 55,55 Q70,46 85,44 Q100,43 115,46 Q135,52 155,60 Q175,66 185,68" fill="none" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+  <text x="188" y="67" fill="#d29922" font-family="system-ui" font-size="7" opacity="0.7">Curv</text>
+  <!-- Fill under total curve -->
+  <path d="M25,82 Q45,70 65,55 Q85,42 105,35 Q130,30 155,28 Q175,27 185,27 L185,100 L25,100 Z" fill="url(#totalFill)"/>
+  <!-- Total yield curve (sum of all three) -->
+  <g filter="url(#glow)">
+    <path d="M25,82 Q45,70 65,55 Q85,42 105,35 Q130,30 155,28 Q175,27 185,27" fill="none" stroke="#79c0ff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Plus signs showing decomposition -->
+  <g fill="#8b949e" font-family="system-ui" font-size="10" font-weight="bold" opacity="0.4">
+    <text x="8" y="42">+</text>
+    <text x="8" y="58">+</text>
+  </g>
+  <!-- Label -->
+  <text x="100" y="113" text-anchor="middle" fill="#8b949e" font-family="system-ui" font-size="8" font-weight="500">Nelson-Siegel</text>
+</svg>

@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nelson-Siegel Model — FI Model Zoo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#79c0ff;--accent2:#58a6ff;--accent-glow:rgba(121,192,255,0.15);
+  --green:#3fb950;--orange:#d29922;--red:#f85149;--purple:#bc8cff;--pink:#f778ba;
+  --border:#30363d;--radius:8px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+  --level-color:#58a6ff;--slope-color:#3fb950;--curve-color:#d29922;--total-color:#79c0ff;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none;transition:opacity .2s}
+a:hover{opacity:.8}
+
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header .back{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.4rem}
+.header .back svg{width:16px;height:16px}
+.header .title-group{flex:1}
+.header h1{font-size:1.35rem;font-weight:600;letter-spacing:-.01em}
+.header .subtitle{font-size:.8rem;color:var(--text2)}
+.badge{display:inline-block;padding:.15rem .55rem;border-radius:99px;font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.badge-family{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(121,192,255,.3)}
+.badge-complexity{background:rgba(210,153,34,.12);color:var(--orange);border:1px solid rgba(210,153,34,.3)}
+
+.container{max-width:1400px;margin:0 auto;padding:2rem}
+.grid-main{display:grid;grid-template-columns:1fr 380px;gap:1.5rem}
+@media(max-width:1024px){.grid-main{grid-template-columns:1fr}}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .3s}
+.card:hover{border-color:rgba(121,192,255,.4)}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-size:1rem;font-weight:600}
+.card-header .icon{width:20px;height:20px;color:var(--accent)}
+.card-body{padding:1.25rem}
+
+.formula-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:center;margin:1rem 0;font-family:var(--mono);font-size:.95rem;color:var(--accent);position:relative;overflow:hidden;line-height:2}
+.formula-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+
+.chart-container{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+canvas{display:block;width:100%;cursor:crosshair}
+
+.slider-group{margin-bottom:1.15rem}
+.slider-label{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;margin-bottom:.35rem}
+.slider-label span:first-child{font-weight:500}
+.slider-label .value{font-family:var(--mono);font-weight:500;font-size:.85rem}
+.slider-desc{font-size:.72rem;color:var(--text3);margin-bottom:.4rem;line-height:1.5}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--bg4);border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;box-shadow:0 0 8px rgba(121,192,255,.4)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;cursor:pointer;border:none}
+#s_beta0::-webkit-slider-thumb{background:var(--level-color)}
+#s_beta1::-webkit-slider-thumb{background:var(--slope-color)}
+#s_beta2::-webkit-slider-thumb{background:var(--curve-color)}
+#s_lambda::-webkit-slider-thumb{background:var(--purple)}
+
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.25rem}
+.preset-btn{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.55rem .75rem;font-size:.78rem;font-weight:500;color:var(--text2);cursor:pointer;transition:all .25s;font-family:var(--font);text-align:center}
+.preset-btn:hover{border-color:var(--accent);color:var(--text);background:var(--accent-glow)}
+.preset-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+
+.legend{display:flex;gap:1rem;padding:.75rem 1rem;flex-wrap:wrap;border-top:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text2);cursor:pointer;user-select:none}
+.legend-item:hover{color:var(--text)}
+.legend-dot{width:12px;height:3px;border-radius:2px}
+.legend-item input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:13px;height:13px}
+
+.decomp-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:.75rem 0;background:var(--bg4)}
+.decomp-bar div{transition:width .3s}
+.decomp-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text2);font-family:var(--mono)}
+
+.data-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.data-table th{text-align:left;padding:.5rem .6rem;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
+.data-table td{padding:.45rem .6rem;border-bottom:1px solid rgba(48,54,61,.4);font-family:var(--mono);font-size:.8rem}
+
+.insight{background:linear-gradient(135deg,rgba(121,192,255,.08),rgba(88,166,255,.04));border:1px solid rgba(121,192,255,.25);border-radius:var(--radius);padding:1.25rem;margin-top:1.5rem}
+.insight h3{color:var(--accent);font-size:.9rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.insight p{color:var(--text2);font-size:.88rem;line-height:1.65}
+
+.tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem}
+.tag{padding:.2rem .55rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:.72rem;color:var(--text2)}
+
+.related-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
+.related-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem;transition:all .3s;cursor:pointer;display:block}
+.related-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.related-card .name{font-weight:500;font-size:.85rem;margin-bottom:.25rem}
+.related-card .desc{font-size:.75rem;color:var(--text2)}
+
+.full-width{grid-column:1/-1}
+
+.chart-tooltip{position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;font-size:.78rem;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;white-space:nowrap}
+.chart-tooltip .tt-label{color:var(--text2);margin-bottom:.15rem}
+.chart-tooltip .tt-value{font-family:var(--mono);font-weight:500}
+
+/* Param color coding */
+.param-level{color:var(--level-color)}
+.param-slope{color:var(--slope-color)}
+.param-curve{color:var(--curve-color)}
+.param-decay{color:var(--purple)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{animation:fadeIn .5s ease-out both}
+.card:nth-child(2){animation-delay:.1s}
+.card:nth-child(3){animation-delay:.15s}
+
+/* Component explanation boxes */
+.comp-explain{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.85rem;margin-bottom:.75rem}
+.comp-explain h4{font-size:.82rem;font-weight:600;margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem}
+.comp-explain p{font-size:.75rem;color:var(--text2);line-height:1.55}
+.comp-explain .ce-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="https://malphons.github.io/app_fi_zoo/" class="back">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+    Back to Zoo
+  </a>
+  <div class="title-group">
+    <h1>Nelson-Siegel Model</h1>
+    <div class="subtitle">Parametric yield curve fitting with level, slope, and curvature</div>
+  </div>
+  <span class="badge badge-family">Yield Curve</span>
+  <span class="badge badge-complexity">Intermediate</span>
+</header>
+
+<div class="container">
+
+  <div class="formula-box">
+    y(&tau;) = <span class="param-level">&beta;<sub>0</sub></span>
+    + <span class="param-slope">&beta;<sub>1</sub></span> &middot;
+    <span style="font-size:.85em">(1 - e<sup>-&tau;/&lambda;</sup>) / (&tau;/&lambda;)</span>
+    + <span class="param-curve">&beta;<sub>2</sub></span> &middot;
+    <span style="font-size:.85em">[(1 - e<sup>-&tau;/&lambda;</sup>) / (&tau;/&lambda;) - e<sup>-&tau;/&lambda;</sup>]</span>
+  </div>
+
+  <div class="grid-main">
+
+    <!-- LEFT: Chart area -->
+    <div>
+      <!-- Main Chart -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <h2>Yield Curve</h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="chart-container">
+            <canvas id="mainChart" width="800" height="420"></canvas>
+            <div class="chart-tooltip" id="tooltip"></div>
+          </div>
+          <div class="legend">
+            <label class="legend-item"><input type="checkbox" id="showTotal" checked> <span class="legend-dot" style="background:var(--total-color)"></span> Total y(&tau;)</label>
+            <label class="legend-item"><input type="checkbox" id="showLevel" checked> <span class="legend-dot" style="background:var(--level-color)"></span> Level &beta;<sub>0</sub></label>
+            <label class="legend-item"><input type="checkbox" id="showSlope" checked> <span class="legend-dot" style="background:var(--slope-color)"></span> Slope &beta;<sub>1</sub></label>
+            <label class="legend-item"><input type="checkbox" id="showCurvature" checked> <span class="legend-dot" style="background:var(--curve-color)"></span> Curvature &beta;<sub>2</sub></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decomposition at selected maturity -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <h2>Decomposition at &tau; = <span id="decompTau">5.0</span>Y</h2>
+        </div>
+        <div class="card-body">
+          <div style="margin-bottom:.75rem">
+            <input type="range" id="decompSlider" min="0.25" max="30" step="0.25" value="5" style="width:100%">
+          </div>
+          <div class="decomp-bar" id="decompBar">
+            <div id="bar_level" style="background:var(--level-color)"></div>
+            <div id="bar_slope" style="background:var(--slope-color)"></div>
+            <div id="bar_curve" style="background:var(--curve-color)"></div>
+          </div>
+          <div class="decomp-label">
+            <span class="param-level" id="dec_level">Level: 0</span>
+            <span class="param-slope" id="dec_slope">Slope: 0</span>
+            <span class="param-curve" id="dec_curve">Curvature: 0</span>
+            <span style="color:var(--accent)" id="dec_total">Total: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sample yields table -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <h2>Sample Yields</h2>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table class="data-table" id="yieldsTable">
+            <thead>
+              <tr>
+                <th>Maturity</th>
+                <th>Level</th>
+                <th>Slope</th>
+                <th>Curvature</th>
+                <th>Total Yield</th>
+              </tr>
+            </thead>
+            <tbody id="yieldsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Component explanations -->
+      <div class="card">
+        <div class="card-header"><h2>Component Analysis</h2></div>
+        <div class="card-body">
+          <div class="comp-explain">
+            <h4><span class="ce-dot" style="background:var(--level-color)"></span> <span class="param-level">&beta;<sub>0</sub> &mdash; Level (Long-term rate)</span></h4>
+            <p>A constant that determines the asymptotic long-term yield. As maturity approaches infinity, the yield converges to &beta;<sub>0</sub>. This represents the market's long-run expectation for interest rates and typically ranges from 2% to 8%.</p>
+          </div>
+          <div class="comp-explain">
+            <h4><span class="ce-dot" style="background:var(--slope-color)"></span> <span class="param-slope">&beta;<sub>1</sub> &mdash; Slope (Short-term component)</span></h4>
+            <p>Controls the slope of the yield curve. A negative &beta;<sub>1</sub> creates a normal (upward-sloping) curve; a positive value creates an inverted curve. The loading factor (1 - e<sup>-&tau;/&lambda;</sup>)/(&tau;/&lambda;) starts at 1 for short maturities and decays to 0 for long maturities, so &beta;<sub>1</sub> primarily affects the short end.</p>
+          </div>
+          <div class="comp-explain">
+            <h4><span class="ce-dot" style="background:var(--curve-color)"></span> <span class="param-curve">&beta;<sub>2</sub> &mdash; Curvature (Medium-term hump)</span></h4>
+            <p>Creates a hump (or trough) at medium maturities. Its loading factor starts at 0, peaks at maturity &lambda;, then decays back to 0. A positive &beta;<sub>2</sub> creates a hump; negative creates a trough. This captures the "belly" of the curve and is associated with monetary policy expectations.</p>
+          </div>
+          <div class="comp-explain">
+            <h4><span class="ce-dot" style="background:var(--purple)"></span> <span class="param-decay">&lambda; &mdash; Decay Factor</span></h4>
+            <p>Controls how quickly the slope and curvature components decay with maturity. A larger &lambda; means slower decay -- effects persist further along the curve. It also determines where the curvature component peaks (at maturity = &lambda;). Typical values range from 1 to 5 years.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls -->
+    <div>
+      <!-- Parameters -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <h2>Parameters</h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div class="card-body">
+          <!-- Presets -->
+          <div class="preset-grid">
+            <button class="preset-btn active" onclick="applyPreset('normal')">Normal Curve</button>
+            <button class="preset-btn" onclick="applyPreset('inverted')">Inverted Curve</button>
+            <button class="preset-btn" onclick="applyPreset('humped')">Humped Curve</button>
+            <button class="preset-btn" onclick="applyPreset('flat')">Flat Curve</button>
+          </div>
+
+          <!-- Beta 0 -->
+          <div class="slider-group">
+            <div class="slider-label">
+              <span class="param-level">&beta;<sub>0</sub> &mdash; Level</span>
+              <span class="value param-level" id="v_beta0">5.00%</span>
+            </div>
+            <div class="slider-desc">Long-term asymptotic yield. The rate the curve approaches at infinite maturity.</div>
+            <input type="range" id="s_beta0" min="0" max="12" step="0.05" value="5.00">
+          </div>
+
+          <!-- Beta 1 -->
+          <div class="slider-group">
+            <div class="slider-label">
+              <span class="param-slope">&beta;<sub>1</sub> &mdash; Slope</span>
+              <span class="value param-slope" id="v_beta1">-2.00%</span>
+            </div>
+            <div class="slider-desc">Short-term deviation from level. Negative = normal (upward); Positive = inverted.</div>
+            <input type="range" id="s_beta1" min="-8" max="8" step="0.05" value="-2.00">
+          </div>
+
+          <!-- Beta 2 -->
+          <div class="slider-group">
+            <div class="slider-label">
+              <span class="param-curve">&beta;<sub>2</sub> &mdash; Curvature</span>
+              <span class="value param-curve" id="v_beta2">1.00%</span>
+            </div>
+            <div class="slider-desc">Medium-term hump/trough. Positive = hump; Negative = trough.</div>
+            <input type="range" id="s_beta2" min="-8" max="8" step="0.05" value="1.00">
+          </div>
+
+          <!-- Lambda -->
+          <div class="slider-group">
+            <div class="slider-label">
+              <span class="param-decay">&lambda; &mdash; Decay</span>
+              <span class="value param-decay" id="v_lambda">1.50</span>
+            </div>
+            <div class="slider-desc">Speed of exponential decay. Larger = slower decay, effects extend further out the curve.</div>
+            <input type="range" id="s_lambda" min="0.3" max="8" step="0.05" value="1.50">
+          </div>
+        </div>
+      </div>
+
+      <!-- Factor Loadings Chart -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <h2>Factor Loadings</h2>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="chart-container">
+            <canvas id="loadingChart" width="380" height="250"></canvas>
+          </div>
+          <div class="legend" style="font-size:.72rem">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--level-color)"></span> Level: 1</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--slope-color)"></span> Slope loading</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--curve-color)"></span> Curvature loading</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Insight -->
+      <div class="card">
+        <div class="card-body">
+          <div class="insight" style="margin-top:0">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Key Insight
+            </h3>
+            <p>Three factors -- level, slope, and curvature -- explain more than 95% of yield curve variation. This remarkable parsimony makes Nelson-Siegel the standard model for central banks worldwide, including the ECB, BIS, and many national central banks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-width info section -->
+    <div class="card full-width">
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+          <div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-bottom:.75rem">Use Cases</h3>
+            <div class="tags">
+              <span class="tag">Yield Curve Fitting</span>
+              <span class="tag">Central Bank Reporting</span>
+              <span class="tag">Relative Value Analysis</span>
+            </div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-top:1rem;margin-bottom:.75rem">Products</h3>
+            <div class="tags">
+              <span class="tag">Government Bonds</span>
+              <span class="tag">Yield Curve Forecasting</span>
+            </div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-top:1rem;margin-bottom:.5rem">Key Reference</h3>
+            <p style="font-size:.85rem;color:var(--text2)">Nelson &amp; Siegel (1987) &mdash; "Parsimonious Modeling of Yield Curves"</p>
+          </div>
+          <div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-bottom:.75rem">Related Models</h3>
+            <div class="related-grid">
+              <a href="../bootstrapping/" class="related-card">
+                <div class="name">Bootstrapping</div>
+                <div class="desc">Non-parametric curve construction from bond prices</div>
+              </a>
+              <a href="https://malphons.github.io/app_fi_zoo/#svensson" class="related-card">
+                <div class="name">Svensson</div>
+                <div class="desc">Extended Nelson-Siegel with a second curvature factor</div>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="tags" style="margin-top:1.25rem">
+          <span class="tag">parametric</span>
+          <span class="tag">level-slope-curvature</span>
+          <span class="tag">central-bank</span>
+          <span class="tag">fitting</span>
+          <span class="tag">term-structure</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// Parameters
+// ──────────────────────────────────────────────
+let params = { beta0: 5.00, beta1: -2.00, beta2: 1.00, lambda: 1.50 };
+
+const presets = {
+  normal:   { beta0: 5.00, beta1: -2.00, beta2:  1.00, lambda: 1.50 },
+  inverted: { beta0: 3.50, beta1:  2.50, beta2: -1.00, lambda: 1.80 },
+  humped:   { beta0: 4.50, beta1: -1.00, beta2:  4.00, lambda: 2.00 },
+  flat:     { beta0: 4.00, beta1:  0.00, beta2:  0.00, lambda: 1.50 },
+};
+
+// ──────────────────────────────────────────────
+// Nelson-Siegel functions
+// ──────────────────────────────────────────────
+function slopeLoading(tau, lam) {
+  const x = tau / lam;
+  if (x < 1e-6) return 1;
+  return (1 - Math.exp(-x)) / x;
+}
+
+function curvatureLoading(tau, lam) {
+  const x = tau / lam;
+  if (x < 1e-6) return 0;
+  return (1 - Math.exp(-x)) / x - Math.exp(-x);
+}
+
+function nsYield(tau, p) {
+  return p.beta0 + p.beta1 * slopeLoading(tau, p.lambda) + p.beta2 * curvatureLoading(tau, p.lambda);
+}
+
+function nsLevel(tau, p) { return p.beta0; }
+function nsSlope(tau, p) { return p.beta1 * slopeLoading(tau, p.lambda); }
+function nsCurvature(tau, p) { return p.beta2 * curvatureLoading(tau, p.lambda); }
+
+// ──────────────────────────────────────────────
+// Canvas setup helpers
+// ──────────────────────────────────────────────
+const dpr = window.devicePixelRatio || 1;
+
+function setupCanvas(canvas, w, h) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const cw = rect.width;
+  canvas.width = cw * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = cw + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: cw, h };
+}
+
+// ──────────────────────────────────────────────
+// Main chart
+// ──────────────────────────────────────────────
+const mainCanvas = document.getElementById('mainChart');
+const pad = { top: 30, right: 25, bottom: 50, left: 60 };
+
+function drawMainChart() {
+  const { ctx, w, h } = setupCanvas(mainCanvas, 800, 420);
+  const showTotal = document.getElementById('showTotal').checked;
+  const showLevel = document.getElementById('showLevel').checked;
+  const showSlope = document.getElementById('showSlope').checked;
+  const showCurve = document.getElementById('showCurvature').checked;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const tauMax = 30;
+  const taus = [];
+  for (let t = 0.1; t <= tauMax; t += 0.1) taus.push(t);
+
+  // Compute all series
+  const totalVals = taus.map(t => nsYield(t, params));
+  const levelVals = taus.map(t => nsLevel(t, params));
+  const slopeVals = taus.map(t => nsSlope(t, params));
+  const curveVals = taus.map(t => nsCurvature(t, params));
+
+  // Y range
+  let allVals = [];
+  if (showTotal) allVals.push(...totalVals);
+  if (showLevel) allVals.push(...levelVals);
+  if (showSlope) allVals.push(...slopeVals);
+  if (showCurve) allVals.push(...curveVals);
+  if (allVals.length === 0) allVals = totalVals;
+
+  let yMin = Math.min(...allVals) - 0.3;
+  let yMax = Math.max(...allVals) + 0.3;
+  if (yMax - yMin < 1) { const mid = (yMax + yMin) / 2; yMin = mid - 0.5; yMax = mid + 0.5; }
+
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+  const toX = v => pad.left + (v / tauMax) * plotW;
+  const toY = v => pad.top + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.6)';
+  ctx.lineWidth = 0.5;
+  const yTicks = 8;
+  ctx.font = '11px Inter, system-ui';
+  for (let i = 0; i <= yTicks; i++) {
+    const v = yMin + (yMax - yMin) * i / yTicks;
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#6e7681';
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(1) + '%', pad.left - 8, y + 3.5);
+  }
+  const xTicks = [0, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30];
+  xTicks.forEach(t => {
+    const x = toX(t);
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, h - pad.bottom); ctx.stroke();
+    ctx.fillStyle = '#6e7681';
+    ctx.textAlign = 'center';
+    ctx.fillText(t + 'Y', x, h - pad.bottom + 18);
+  });
+
+  // Zero line
+  if (yMin < 0 && yMax > 0) {
+    ctx.strokeStyle = 'rgba(139,148,158,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(0)); ctx.lineTo(w - pad.right, toY(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '12px Inter, system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Maturity (\u03c4)', w / 2, h - 5);
+  ctx.save();
+  ctx.translate(14, h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Yield (%)', 0, 0);
+  ctx.restore();
+
+  function plotLine(vals, color, lw, dashed) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    if (dashed) ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    taus.forEach((t, i) => {
+      const x = toX(t);
+      const y = toY(vals[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw components
+  if (showLevel) plotLine(levelVals, 'rgba(88,166,255,0.6)', 1.5, true);
+  if (showSlope) plotLine(slopeVals, 'rgba(63,185,80,0.6)', 1.5, true);
+  if (showCurve) plotLine(curveVals, 'rgba(210,153,34,0.6)', 1.5, true);
+
+  // Draw total with gradient fill
+  if (showTotal) {
+    // Fill
+    const grad = ctx.createLinearGradient(0, pad.top, 0, h - pad.bottom);
+    grad.addColorStop(0, 'rgba(121,192,255,0.1)');
+    grad.addColorStop(1, 'rgba(121,192,255,0)');
+    ctx.beginPath();
+    taus.forEach((t, i) => {
+      const x = toX(t);
+      const y = toY(totalVals[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(toX(taus[taus.length - 1]), toY(Math.max(yMin, 0)));
+    ctx.lineTo(toX(taus[0]), toY(Math.max(yMin, 0)));
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    plotLine(totalVals, '#79c0ff', 2.5, false);
+  }
+
+  // Store for tooltip
+  window._mainChartData = { taus, totalVals, levelVals, slopeVals, curveVals, toX, toY, w, h };
+}
+
+// Tooltip
+mainCanvas.addEventListener('mousemove', e => {
+  const d = window._mainChartData;
+  if (!d) return;
+  const rect = mainCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const tooltip = document.getElementById('tooltip');
+
+  if (mx < pad.left || mx > d.w - pad.right || my < pad.top || my > d.h - pad.bottom) {
+    tooltip.style.opacity = '0';
+    return;
+  }
+
+  // Map to tau
+  const tau = ((mx - pad.left) / (d.w - pad.left - pad.right)) * 30;
+  const idx = Math.round((tau - 0.1) / 0.1);
+  if (idx < 0 || idx >= d.taus.length) { tooltip.style.opacity = '0'; return; }
+
+  const t = d.taus[idx];
+  tooltip.innerHTML = `
+    <div class="tt-label">&tau; = ${t.toFixed(1)}Y</div>
+    <div class="tt-value" style="color:var(--total-color)">Total: ${d.totalVals[idx].toFixed(3)}%</div>
+    <div class="tt-value" style="color:var(--level-color)">Level: ${d.levelVals[idx].toFixed(3)}%</div>
+    <div class="tt-value" style="color:var(--slope-color)">Slope: ${d.slopeVals[idx].toFixed(3)}%</div>
+    <div class="tt-value" style="color:var(--curve-color)">Curvature: ${d.curveVals[idx].toFixed(3)}%</div>
+  `;
+  tooltip.style.opacity = '1';
+  const tx = d.toX(t);
+  const ty = d.toY(d.totalVals[idx]);
+  tooltip.style.left = (tx + 15) + 'px';
+  tooltip.style.top = Math.max(10, ty - 20) + 'px';
+});
+mainCanvas.addEventListener('mouseleave', () => {
+  document.getElementById('tooltip').style.opacity = '0';
+});
+
+// ──────────────────────────────────────────────
+// Factor loading chart
+// ──────────────────────────────────────────────
+const loadCanvas = document.getElementById('loadingChart');
+
+function drawLoadingChart() {
+  const { ctx, w, h } = setupCanvas(loadCanvas, 380, 250);
+  const lp = { top: 20, right: 15, bottom: 40, left: 45 };
+  ctx.clearRect(0, 0, w, h);
+
+  const tauMax = 30;
+  const taus = [];
+  for (let t = 0.1; t <= tauMax; t += 0.1) taus.push(t);
+
+  const plotW = w - lp.left - lp.right;
+  const plotH = h - lp.top - lp.bottom;
+  const toX = v => lp.left + (v / tauMax) * plotW;
+  const toY = v => lp.top + (1 - (v - (-0.1)) / (1.1 - (-0.1))) * plotH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.5)';
+  ctx.lineWidth = 0.5;
+  ctx.font = '10px Inter, system-ui';
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(lp.left, y); ctx.lineTo(w - lp.right, y); ctx.stroke();
+    ctx.fillStyle = '#6e7681';
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(2), lp.left - 6, y + 3);
+  });
+  [5, 10, 15, 20, 25, 30].forEach(t => {
+    const x = toX(t);
+    ctx.fillStyle = '#6e7681';
+    ctx.textAlign = 'center';
+    ctx.fillText(t + 'Y', x, h - lp.bottom + 14);
+  });
+
+  // Zero line
+  ctx.strokeStyle = 'rgba(139,148,158,0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(lp.left, toY(0)); ctx.lineTo(w - lp.right, toY(0)); ctx.stroke();
+
+  function plotLine(fn, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    taus.forEach((t, i) => {
+      const v = fn(t, params.lambda);
+      const x = toX(t);
+      const y = toY(v);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // Level loading = 1 (constant)
+  ctx.strokeStyle = 'rgba(88,166,255,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(lp.left, toY(1));
+  ctx.lineTo(w - lp.right, toY(1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  plotLine(slopeLoading, '#3fb950');
+  plotLine(curvatureLoading, '#d29922');
+
+  // Mark lambda peak on curvature
+  const peakX = toX(params.lambda);
+  const peakY = toY(curvatureLoading(params.lambda, params.lambda));
+  ctx.beginPath();
+  ctx.arc(peakX, peakY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#d29922';
+  ctx.fill();
+  ctx.fillStyle = '#6e7681';
+  ctx.font = '10px Inter, system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('\u03bb=' + params.lambda.toFixed(1), peakX, peakY - 10);
+}
+
+// ──────────────────────────────────────────────
+// Decomposition bar
+// ──────────────────────────────────────────────
+function updateDecomposition() {
+  const tau = parseFloat(document.getElementById('decompSlider').value);
+  document.getElementById('decompTau').textContent = tau.toFixed(1);
+
+  const lv = nsLevel(tau, params);
+  const sl = nsSlope(tau, params);
+  const cv = nsCurvature(tau, params);
+  const total = lv + sl + cv;
+
+  document.getElementById('dec_level').textContent = 'Level: ' + lv.toFixed(2) + '%';
+  document.getElementById('dec_slope').textContent = 'Slope: ' + sl.toFixed(2) + '%';
+  document.getElementById('dec_curve').textContent = 'Curvature: ' + cv.toFixed(2) + '%';
+  document.getElementById('dec_total').textContent = 'Total: ' + total.toFixed(2) + '%';
+
+  // For the bar, use absolute values proportionally
+  const absL = Math.abs(lv);
+  const absS = Math.abs(sl);
+  const absC = Math.abs(cv);
+  const sum = absL + absS + absC || 1;
+
+  document.getElementById('bar_level').style.width = (absL / sum * 100) + '%';
+  document.getElementById('bar_slope').style.width = (absS / sum * 100) + '%';
+  document.getElementById('bar_curve').style.width = (absC / sum * 100) + '%';
+}
+
+// ──────────────────────────────────────────────
+// Sample yields table
+// ──────────────────────────────────────────────
+function updateTable() {
+  const mats = [0.25, 0.5, 1, 2, 3, 5, 7, 10, 15, 20, 30];
+  const tbody = document.getElementById('yieldsBody');
+  tbody.innerHTML = '';
+  mats.forEach(m => {
+    const lv = nsLevel(m, params);
+    const sl = nsSlope(m, params);
+    const cv = nsCurvature(m, params);
+    const total = lv + sl + cv;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${m >= 1 ? m + 'Y' : (m * 12) + 'M'}</td>
+      <td class="param-level">${lv.toFixed(3)}</td>
+      <td class="param-slope">${sl.toFixed(3)}</td>
+      <td class="param-curve">${cv.toFixed(3)}</td>
+      <td style="color:var(--accent);font-weight:500">${total.toFixed(3)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ──────────────────────────────────────────────
+// Presets
+// ──────────────────────────────────────────────
+function applyPreset(name) {
+  const p = presets[name];
+  params = { ...p };
+  document.getElementById('s_beta0').value = p.beta0;
+  document.getElementById('s_beta1').value = p.beta1;
+  document.getElementById('s_beta2').value = p.beta2;
+  document.getElementById('s_lambda').value = p.lambda;
+  updateLabels();
+  update();
+
+  document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function updateLabels() {
+  document.getElementById('v_beta0').textContent = params.beta0.toFixed(2) + '%';
+  document.getElementById('v_beta1').textContent = (params.beta1 >= 0 ? '+' : '') + params.beta1.toFixed(2) + '%';
+  document.getElementById('v_beta2').textContent = (params.beta2 >= 0 ? '+' : '') + params.beta2.toFixed(2) + '%';
+  document.getElementById('v_lambda').textContent = params.lambda.toFixed(2);
+}
+
+// ──────────────────────────────────────────────
+// Event listeners
+// ──────────────────────────────────────────────
+['s_beta0', 's_beta1', 's_beta2', 's_lambda'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    const key = { s_beta0: 'beta0', s_beta1: 'beta1', s_beta2: 'beta2', s_lambda: 'lambda' }[id];
+    params[key] = parseFloat(e.target.value);
+    updateLabels();
+    update();
+    // Clear active preset
+    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+  });
+});
+
+document.getElementById('decompSlider').addEventListener('input', updateDecomposition);
+
+['showTotal', 'showLevel', 'showSlope', 'showCurvature'].forEach(id => {
+  document.getElementById(id).addEventListener('change', drawMainChart);
+});
+
+// ──────────────────────────────────────────────
+// Master update
+// ──────────────────────────────────────────────
+function update() {
+  drawMainChart();
+  drawLoadingChart();
+  updateDecomposition();
+  updateTable();
+}
+
+window.addEventListener('resize', update);
+updateLabels();
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bootstrapping the Zero Curve — FI Model Zoo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--accent2:#1f6feb;--accent-glow:rgba(88,166,255,0.15);
+  --green:#3fb950;--orange:#d29922;--red:#f85149;--purple:#bc8cff;
+  --border:#30363d;--radius:8px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none;transition:opacity .2s}
+a:hover{opacity:.8}
+
+/* Header */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header .back{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.4rem}
+.header .back svg{width:16px;height:16px}
+.header .title-group{flex:1}
+.header h1{font-size:1.35rem;font-weight:600;letter-spacing:-.01em}
+.header .subtitle{font-size:.8rem;color:var(--text2)}
+.badge{display:inline-block;padding:.15rem .55rem;border-radius:99px;font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.badge-family{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(88,166,255,.3)}
+.badge-complexity{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+
+/* Layout */
+.container{max-width:1400px;margin:0 auto;padding:2rem}
+.grid-main{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:1024px){.grid-main{grid-template-columns:1fr}}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .3s}
+.card:hover{border-color:var(--accent)}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-size:1rem;font-weight:600}
+.card-header .icon{width:20px;height:20px;color:var(--accent)}
+.card-body{padding:1.25rem}
+
+/* Formula */
+.formula-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:center;margin:1rem 0;font-family:var(--mono);font-size:1.1rem;color:var(--accent);position:relative;overflow:hidden}
+.formula-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+
+/* Chart */
+.chart-container{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden}
+canvas{display:block;width:100%;cursor:crosshair}
+
+/* Sliders */
+.slider-group{margin-bottom:1rem}
+.slider-label{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;margin-bottom:.35rem}
+.slider-label span:first-child{color:var(--text2);font-weight:500}
+.slider-label .value{color:var(--accent);font-family:var(--mono);font-weight:500}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--bg4);border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;box-shadow:0 0 8px rgba(88,166,255,.4)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;border:none}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table th{text-align:left;padding:.55rem .6rem;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:.75rem;text-transform:uppercase;letter-spacing:.03em}
+.data-table td{padding:.55rem .6rem;border-bottom:1px solid rgba(48,54,61,.5);font-family:var(--mono);font-size:.82rem;transition:background .2s}
+.data-table tr:hover td{background:var(--accent-glow)}
+.data-table tr.active td{background:rgba(88,166,255,.1);color:var(--accent)}
+
+/* Walkthrough */
+.step{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:.75rem;cursor:pointer;transition:all .3s}
+.step:hover{border-color:var(--accent)}
+.step.active{border-color:var(--accent);background:var(--accent-glow)}
+.step-header{display:flex;align-items:center;gap:.75rem}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;flex-shrink:0;transition:all .3s}
+.step.active .step-num{background:var(--accent);color:var(--bg)}
+.step-title{font-weight:500;font-size:.9rem}
+.step-content{margin-top:.75rem;padding-left:2.5rem;color:var(--text2);font-size:.85rem;display:none}
+.step.active .step-content{display:block}
+.step-formula{font-family:var(--mono);color:var(--accent);margin:.5rem 0;font-size:.85rem}
+
+/* Key Insight */
+.insight{background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(31,111,235,.05));border:1px solid rgba(88,166,255,.25);border-radius:var(--radius);padding:1.25rem;margin-top:1.5rem}
+.insight h3{color:var(--accent);font-size:.9rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.insight p{color:var(--text2);font-size:.88rem;line-height:1.65}
+
+/* Tags */
+.tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem}
+.tag{padding:.2rem .55rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:.72rem;color:var(--text2)}
+
+/* Related */
+.related-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
+.related-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem;transition:all .3s;cursor:pointer}
+.related-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.related-card .name{font-weight:500;font-size:.85rem;margin-bottom:.25rem}
+.related-card .desc{font-size:.75rem;color:var(--text2)}
+
+/* Legend */
+.legend{display:flex;gap:1.25rem;padding:.75rem 1rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:2px}
+
+/* Tooltip */
+.chart-tooltip{position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;font-size:.78rem;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;white-space:nowrap}
+.chart-tooltip .tt-label{color:var(--text2);margin-bottom:.2rem}
+.chart-tooltip .tt-value{color:var(--accent);font-family:var(--mono);font-weight:500}
+
+/* Full-width sections */
+.full-width{grid-column:1/-1}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{animation:fadeIn .5s ease-out both}
+.card:nth-child(2){animation-delay:.1s}
+.card:nth-child(3){animation-delay:.2s}
+.card:nth-child(4){animation-delay:.3s}
+
+/* Checkbox toggle */
+.toggle-row{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--text2);cursor:pointer;user-select:none}
+.toggle-row input[type=checkbox]{accent-color:var(--accent);cursor:pointer}
+
+/* Highlight animation for table rows */
+@keyframes highlightRow{0%{background:rgba(88,166,255,.3)}100%{background:transparent}}
+.data-table tr.highlight td{animation:highlightRow 1s ease-out}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <a href="https://malphons.github.io/app_fi_zoo/" class="back">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+    Back to Zoo
+  </a>
+  <div class="title-group">
+    <h1>Bootstrapping the Zero Curve</h1>
+    <div class="subtitle">Sequentially extract zero-coupon rates from observed coupon bond prices</div>
+  </div>
+  <span class="badge badge-family">Yield Curve</span>
+  <span class="badge badge-complexity">Foundational</span>
+</header>
+
+<div class="container">
+
+  <!-- Formula -->
+  <div class="formula-box">
+    P = &Sigma; C / (1 + z<sub>i</sub>)<sup>i</sup> + F / (1 + z<sub>n</sub>)<sup>n</sup>
+  </div>
+
+  <div class="grid-main">
+
+    <!-- LEFT: Interactive Chart -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Interactive Yield Curves</h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="chart-container">
+          <canvas id="curveChart" width="640" height="400"></canvas>
+          <div class="chart-tooltip" id="tooltip"></div>
+        </div>
+        <div class="legend">
+          <label class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span> Zero Curve</label>
+          <label class="legend-item"><span class="legend-dot" style="background:var(--green)"></span> Par Curve</label>
+          <label class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span> Forward Rates</label>
+          <label class="toggle-row" style="margin-left:auto"><input type="checkbox" id="showForward"> Show Forwards</label>
+          <label class="toggle-row"><input type="checkbox" id="showPar" checked> Show Par</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Bond Inputs -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Bond Inputs</h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="card-body" id="sliderPanel">
+        <!-- Sliders injected by JS -->
+      </div>
+    </div>
+
+    <!-- Discount Factor Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Bootstrapped Results</h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-10"/></svg>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table class="data-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th>Maturity</th>
+              <th>Coupon (%)</th>
+              <th>Price</th>
+              <th>Zero Rate (%)</th>
+              <th>Discount Factor</th>
+              <th>Fwd Rate (%)</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Walkthrough -->
+    <div class="card">
+      <div class="card-header">
+        <h2>How Bootstrapping Works</h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </div>
+      <div class="card-body" id="walkthrough">
+        <div class="step active" data-step="0" onclick="setStep(0)">
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Start with the shortest maturity</div>
+          </div>
+          <div class="step-content">
+            <p>The 1-year bond has no intermediate coupons, so it behaves like a zero-coupon bond. We can directly solve for the 1-year zero rate:</p>
+            <div class="step-formula">z<sub>1</sub> = (F + C) / P<sub>1</sub> - 1</div>
+            <p>This gives us our first point on the zero curve.</p>
+          </div>
+        </div>
+        <div class="step" data-step="1" onclick="setStep(1)">
+          <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-title">Use known rates to find the next</div>
+          </div>
+          <div class="step-content">
+            <p>For the 2-year bond, we know z<sub>1</sub> from step 1. The bond price equation has only one unknown (z<sub>2</sub>):</p>
+            <div class="step-formula">P<sub>2</sub> = C/(1+z<sub>1</sub>) + (F+C)/(1+z<sub>2</sub>)<sup>2</sup></div>
+            <p>Solve for z<sub>2</sub> -- the 2-year zero rate.</p>
+          </div>
+        </div>
+        <div class="step" data-step="2" onclick="setStep(2)">
+          <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-title">Repeat sequentially for each maturity</div>
+          </div>
+          <div class="step-content">
+            <p>For the n-year bond, all zero rates z<sub>1</sub> through z<sub>n-1</sub> are already known. The bond pricing equation becomes:</p>
+            <div class="step-formula">P<sub>n</sub> = &Sigma;<sub>i=1..n-1</sub> C/(1+z<sub>i</sub>)<sup>i</sup> + (F+C)/(1+z<sub>n</sub>)<sup>n</sup></div>
+            <p>Only z<sub>n</sub> is unknown, so we solve directly.</p>
+          </div>
+        </div>
+        <div class="step" data-step="3" onclick="setStep(3)">
+          <div class="step-header">
+            <div class="step-num">4</div>
+            <div class="step-title">Compute discount factors</div>
+          </div>
+          <div class="step-content">
+            <p>From each zero rate, we derive the discount factor -- the present value of $1 received at that maturity:</p>
+            <div class="step-formula">DF(t) = 1 / (1 + z<sub>t</sub>)<sup>t</sup></div>
+            <p>Discount factors strictly decrease with maturity and form the basis for pricing any cash flow.</p>
+          </div>
+        </div>
+        <div class="step" data-step="4" onclick="setStep(4)">
+          <div class="step-header">
+            <div class="step-num">5</div>
+            <div class="step-title">Extract forward rates</div>
+          </div>
+          <div class="step-content">
+            <p>Forward rates are implied by the relationship between adjacent zero rates:</p>
+            <div class="step-formula">f(t-1, t) = [(1+z<sub>t</sub>)<sup>t</sup> / (1+z<sub>t-1</sub>)<sup>t-1</sup>] - 1</div>
+            <p>These represent the market's implied rates for future periods and are key inputs to derivatives pricing.</p>
+          </div>
+        </div>
+        <div class="step" data-step="5" onclick="setStep(5)">
+          <div class="step-header">
+            <div class="step-num">6</div>
+            <div class="step-title">The zero curve is complete</div>
+          </div>
+          <div class="step-content">
+            <p>The bootstrapped zero curve, discount factors, and forward rates provide a complete, arbitrage-free framework for pricing any fixed income instrument. The par curve can be reconstructed from the zero curve to verify consistency.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Insight & Info -->
+    <div class="card full-width">
+      <div class="card-body">
+        <div class="insight">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Key Insight
+          </h3>
+          <p>Each successive bond maturity reveals exactly one new zero rate, building the curve sequentially from short to long maturities. This "bootstrap" process ensures the resulting curve is consistent with observed market prices -- no arbitrage is possible between the bootstrapped zero rates and the input bond prices.</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
+          <div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-bottom:.75rem">Use Cases</h3>
+            <div class="tags">
+              <span class="tag">Bond Pricing</span>
+              <span class="tag">Swap Valuation</span>
+              <span class="tag">Discount Curve Construction</span>
+            </div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-top:1rem;margin-bottom:.75rem">Products</h3>
+            <div class="tags">
+              <span class="tag">Government Bonds</span>
+              <span class="tag">Interest Rate Swaps</span>
+              <span class="tag">FRAs</span>
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-bottom:.75rem">Related Models</h3>
+            <div class="related-grid">
+              <a href="../nelson-siegel/" class="related-card">
+                <div class="name">Nelson-Siegel</div>
+                <div class="desc">Parametric yield curve fitting with level, slope, curvature factors</div>
+              </a>
+              <a href="https://malphons.github.io/app_fi_zoo/#vasicek" class="related-card">
+                <div class="name">Vasicek</div>
+                <div class="desc">Mean-reverting short-rate model for term structure dynamics</div>
+              </a>
+            </div>
+            <h3 style="font-size:.9rem;color:var(--text2);margin-top:1rem;margin-bottom:.5rem">Key Reference</h3>
+            <p style="font-size:.85rem;color:var(--text2)">Fama &amp; Bliss (1987) &mdash; "The Information in Long-Maturity Forward Rates"</p>
+          </div>
+        </div>
+
+        <div class="tags" style="margin-top:1.25rem">
+          <span class="tag">zero-rate</span>
+          <span class="tag">discount-factor</span>
+          <span class="tag">par-curve</span>
+          <span class="tag">strip</span>
+          <span class="tag">interpolation</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- grid-main -->
+</div><!-- container -->
+
+<script>
+// ──────────────────────────────────────────────
+// Bond definitions: maturity (years), coupon (%), price
+// ──────────────────────────────────────────────
+const bonds = [
+  { maturity: 1,  coupon: 4.00, price: 99.50,  couponRange:[0,10],  priceRange:[90,110] },
+  { maturity: 2,  coupon: 4.50, price: 99.00,  couponRange:[0,10],  priceRange:[85,115] },
+  { maturity: 3,  coupon: 5.00, price: 98.50,  couponRange:[0,10],  priceRange:[80,120] },
+  { maturity: 5,  coupon: 5.50, price: 97.50,  couponRange:[0,10],  priceRange:[75,125] },
+  { maturity: 7,  coupon: 5.75, price: 96.00,  couponRange:[0,10],  priceRange:[70,130] },
+  { maturity: 10, coupon: 6.00, price: 95.00,  couponRange:[0,10],  priceRange:[65,135] },
+];
+
+const face = 100;
+
+// ──────────────────────────────────────────────
+// Build slider UI
+// ──────────────────────────────────────────────
+function buildSliders() {
+  const panel = document.getElementById('sliderPanel');
+  panel.innerHTML = '';
+  bonds.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+        <span style="font-weight:600;font-size:.9rem;color:var(--accent);min-width:2.5rem">${b.maturity}Y</span>
+        <span style="font-size:.78rem;color:var(--text2);flex:1">Bond</span>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Coupon Rate</span><span class="value" id="cLabel${i}">${b.coupon.toFixed(2)}%</span></div>
+        <input type="range" id="coupon${i}" min="${b.couponRange[0]}" max="${b.couponRange[1]}" step="0.05" value="${b.coupon}">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Bond Price</span><span class="value" id="pLabel${i}">${b.price.toFixed(2)}</span></div>
+        <input type="range" id="price${i}" min="${b.priceRange[0]}" max="${b.priceRange[1]}" step="0.10" value="${b.price}">
+      </div>
+      ${i < bonds.length - 1 ? '<hr style="border:none;border-top:1px solid var(--border);margin:1rem 0">' : ''}
+    `;
+    panel.appendChild(div);
+
+    document.getElementById(`coupon${i}`).addEventListener('input', e => {
+      bonds[i].coupon = parseFloat(e.target.value);
+      document.getElementById(`cLabel${i}`).textContent = bonds[i].coupon.toFixed(2) + '%';
+      update();
+    });
+    document.getElementById(`price${i}`).addEventListener('input', e => {
+      bonds[i].price = parseFloat(e.target.value);
+      document.getElementById(`pLabel${i}`).textContent = bonds[i].price.toFixed(2);
+      update();
+    });
+  });
+}
+
+// ──────────────────────────────────────────────
+// Bootstrap algorithm
+// ──────────────────────────────────────────────
+function bootstrap() {
+  // We need to handle non-consecutive maturities.
+  // For maturities with gaps, we linearly interpolate interim zero rates.
+  const maturities = bonds.map(b => b.maturity);
+  const zeroRates = {};
+  const discountFactors = {};
+  const forwardRates = {};
+
+  for (let idx = 0; idx < bonds.length; idx++) {
+    const b = bonds[idx];
+    const n = b.maturity;
+    const c = b.coupon; // annual coupon as %
+    const couponAmt = face * c / 100;
+    const price = b.price;
+
+    // PV of all known coupons
+    let pvKnown = 0;
+    for (let t = 1; t < n; t++) {
+      // need zero rate for year t
+      let zt;
+      if (zeroRates[t] !== undefined) {
+        zt = zeroRates[t];
+      } else {
+        // interpolate from known rates
+        zt = interpolateZero(t, zeroRates, maturities);
+      }
+      pvKnown += couponAmt / Math.pow(1 + zt, t);
+    }
+
+    // Solve for z_n:  price = pvKnown + (face + couponAmt) / (1 + z_n)^n
+    const residual = price - pvKnown;
+    if (residual <= 0) {
+      zeroRates[n] = 0.20; // cap at extreme
+    } else {
+      const zn = Math.pow((face + couponAmt) / residual, 1 / n) - 1;
+      zeroRates[n] = Math.max(0, Math.min(zn, 0.30));
+    }
+    discountFactors[n] = 1 / Math.pow(1 + zeroRates[n], n);
+  }
+
+  // Forward rates
+  let prevMat = 0;
+  let prevDF = 1;
+  for (const b of bonds) {
+    const n = b.maturity;
+    const df = discountFactors[n];
+    const dt = n - prevMat;
+    const fwd = Math.pow(prevDF / df, 1 / dt) - 1;
+    forwardRates[n] = fwd;
+    prevMat = n;
+    prevDF = df;
+  }
+
+  return { zeroRates, discountFactors, forwardRates };
+}
+
+function interpolateZero(t, zeroRates, maturities) {
+  // Find surrounding known maturities
+  const known = maturities.filter(m => zeroRates[m] !== undefined);
+  if (known.length === 0) return 0.05;
+  const below = known.filter(m => m <= t);
+  const above = known.filter(m => m > t);
+  if (below.length === 0) return zeroRates[above[0]];
+  if (above.length === 0) return zeroRates[below[below.length - 1]];
+  const lo = below[below.length - 1];
+  const hi = above[0];
+  const w = (t - lo) / (hi - lo);
+  return zeroRates[lo] * (1 - w) + zeroRates[hi] * w;
+}
+
+// Compute par rate from zero rates for a given maturity
+function parRate(n, zeroRates, maturities) {
+  let sumDF = 0;
+  for (let t = 1; t <= n; t++) {
+    let zt;
+    if (zeroRates[t] !== undefined) {
+      zt = zeroRates[t];
+    } else {
+      zt = interpolateZero(t, zeroRates, maturities);
+    }
+    sumDF += 1 / Math.pow(1 + zt, t);
+  }
+  let zn = zeroRates[n] !== undefined ? zeroRates[n] : interpolateZero(n, zeroRates, maturities);
+  const dfn = 1 / Math.pow(1 + zn, n);
+  return (1 - dfn) / sumDF;
+}
+
+// ──────────────────────────────────────────────
+// Chart rendering
+// ──────────────────────────────────────────────
+const canvas = document.getElementById('curveChart');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+let chartW, chartH;
+const pad = { top: 30, right: 30, bottom: 50, left: 65 };
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  chartW = rect.width;
+  chartH = 400;
+  canvas.width = chartW * dpr;
+  canvas.height = chartH * dpr;
+  canvas.style.width = chartW + 'px';
+  canvas.style.height = chartH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawChart(result) {
+  const { zeroRates, discountFactors, forwardRates } = result;
+  const maturities = bonds.map(b => b.maturity);
+  const showForward = document.getElementById('showForward').checked;
+  const showPar = document.getElementById('showPar').checked;
+
+  ctx.clearRect(0, 0, chartW, chartH);
+
+  // Determine Y range
+  let allRates = maturities.map(m => zeroRates[m] * 100);
+  if (showPar) {
+    maturities.forEach(m => {
+      allRates.push(parRate(m, zeroRates, maturities) * 100);
+    });
+  }
+  if (showForward) {
+    maturities.forEach(m => {
+      allRates.push(forwardRates[m] * 100);
+    });
+  }
+
+  let yMin = Math.max(0, Math.min(...allRates) - 0.5);
+  let yMax = Math.max(...allRates) + 0.5;
+  if (yMax - yMin < 1) { yMin -= 0.5; yMax += 0.5; }
+  const xMin = 0;
+  const xMax = 11;
+
+  const plotW = chartW - pad.left - pad.right;
+  const plotH = chartH - pad.top - pad.bottom;
+  const toX = v => pad.left + (v - xMin) / (xMax - xMin) * plotW;
+  const toY = v => pad.top + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.6)';
+  ctx.lineWidth = 0.5;
+  const yTicks = 6;
+  for (let i = 0; i <= yTicks; i++) {
+    const v = yMin + (yMax - yMin) * i / yTicks;
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(chartW - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#6e7681';
+    ctx.font = '11px Inter, system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(2) + '%', pad.left - 8, y + 3.5);
+  }
+  for (let t = 0; t <= 10; t += 1) {
+    const x = toX(t);
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, chartH - pad.bottom); ctx.stroke();
+    if (t > 0) {
+      ctx.fillStyle = '#6e7681';
+      ctx.textAlign = 'center';
+      ctx.fillText(t + 'Y', x, chartH - pad.bottom + 20);
+    }
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '12px Inter, system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Maturity', chartW / 2, chartH - 5);
+  ctx.save();
+  ctx.translate(16, chartH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Rate (%)', 0, 0);
+  ctx.restore();
+
+  // Generate smooth curves by interpolating
+  function plotSmooth(points, color, lineWidth, dashed) {
+    if (points.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    if (dashed) ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    // Simple Catmull-Rom-ish through points
+    for (let i = 0; i < points.length; i++) {
+      const x = toX(points[i][0]);
+      const y = toY(points[i][1]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function plotDots(points, color, radius) {
+    points.forEach(p => {
+      const x = toX(p[0]);
+      const y = toY(p[1]);
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      // Glow
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
+      ctx.fillStyle = color.replace(')', ',0.15)').replace('rgb', 'rgba');
+      ctx.fill();
+    });
+  }
+
+  // Build interpolated zero curve points
+  const zeroPoints = [];
+  for (let t = maturities[0]; t <= maturities[maturities.length - 1]; t += 0.1) {
+    let z;
+    if (zeroRates[t] !== undefined) z = zeroRates[t];
+    else z = interpolateZero(t, zeroRates, maturities);
+    zeroPoints.push([t, z * 100]);
+  }
+  // Exact points
+  const zeroDots = maturities.map(m => [m, zeroRates[m] * 100]);
+
+  // Par curve
+  if (showPar) {
+    const parPoints = [];
+    for (let t = maturities[0]; t <= maturities[maturities.length - 1]; t += 0.25) {
+      const roundT = Math.round(t * 4) / 4;
+      const pr = parRate(roundT, zeroRates, maturities) * 100;
+      parPoints.push([roundT, pr]);
+    }
+    const parDots = maturities.map(m => [m, parRate(m, zeroRates, maturities) * 100]);
+    plotSmooth(parPoints, '#3fb950', 2, true);
+    plotDots(parDots, '#3fb950', 4);
+  }
+
+  // Forward curve
+  if (showForward) {
+    const fwdDots = maturities.map(m => [m, forwardRates[m] * 100]);
+    // Step-style for forwards
+    ctx.save();
+    ctx.strokeStyle = '#d29922';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    let prevX, prevY;
+    fwdDots.forEach((p, i) => {
+      const x = toX(p[0]);
+      const y = toY(p[1]);
+      if (i === 0) { ctx.moveTo(x, y); }
+      else { ctx.lineTo(x, y); }
+      prevX = x; prevY = y;
+    });
+    ctx.stroke();
+    ctx.restore();
+    plotDots(fwdDots, '#d29922', 4);
+  }
+
+  // Zero curve (drawn on top)
+  // Gradient fill under curve
+  const gradient = ctx.createLinearGradient(0, pad.top, 0, chartH - pad.bottom);
+  gradient.addColorStop(0, 'rgba(88,166,255,0.12)');
+  gradient.addColorStop(1, 'rgba(88,166,255,0)');
+  ctx.beginPath();
+  zeroPoints.forEach((p, i) => {
+    const x = toX(p[0]);
+    const y = toY(p[1]);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(toX(zeroPoints[zeroPoints.length - 1][0]), chartH - pad.bottom);
+  ctx.lineTo(toX(zeroPoints[0][0]), chartH - pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  plotSmooth(zeroPoints, '#58a6ff', 2.5, false);
+  plotDots(zeroDots, '#58a6ff', 5);
+
+  // Store for tooltip
+  window._chartData = { zeroDots, zeroRates, forwardRates, maturities, toX, toY, xMin, xMax, yMin, yMax };
+}
+
+// ──────────────────────────────────────────────
+// Tooltip on canvas hover
+// ──────────────────────────────────────────────
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const d = window._chartData;
+  if (!d) return;
+  const tooltip = document.getElementById('tooltip');
+
+  // Find nearest dot
+  let closest = null;
+  let closestDist = Infinity;
+  d.zeroDots.forEach(p => {
+    const px = d.toX(p[0]);
+    const py = d.toY(p[1]);
+    const dist = Math.hypot(mx - px, my - py);
+    if (dist < closestDist) { closestDist = dist; closest = p; }
+  });
+
+  if (closest && closestDist < 30) {
+    const m = closest[0];
+    tooltip.innerHTML = `
+      <div class="tt-label">${m}Y Maturity</div>
+      <div class="tt-value">Zero: ${closest[1].toFixed(3)}%</div>
+      <div class="tt-value" style="color:var(--green)">Par: ${(parRate(m, d.zeroRates, d.maturities) * 100).toFixed(3)}%</div>
+      <div class="tt-value" style="color:var(--orange)">Fwd: ${(d.forwardRates[m] * 100).toFixed(3)}%</div>
+    `;
+    tooltip.style.opacity = '1';
+    tooltip.style.left = (d.toX(closest[0]) + 12) + 'px';
+    tooltip.style.top = (d.toY(closest[1]) - 10) + 'px';
+  } else {
+    tooltip.style.opacity = '0';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  document.getElementById('tooltip').style.opacity = '0';
+});
+
+// ──────────────────────────────────────────────
+// Update table
+// ──────────────────────────────────────────────
+function updateTable(result) {
+  const { zeroRates, discountFactors, forwardRates } = result;
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+  bonds.forEach((b, i) => {
+    const m = b.maturity;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${m}Y</td>
+      <td>${b.coupon.toFixed(2)}</td>
+      <td>${b.price.toFixed(2)}</td>
+      <td style="color:var(--accent);font-weight:500">${(zeroRates[m] * 100).toFixed(4)}</td>
+      <td>${discountFactors[m].toFixed(6)}</td>
+      <td style="color:var(--orange)">${(forwardRates[m] * 100).toFixed(4)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ──────────────────────────────────────────────
+// Walkthrough steps
+// ──────────────────────────────────────────────
+let currentStep = 0;
+function setStep(n) {
+  currentStep = n;
+  document.querySelectorAll('.step').forEach((el, i) => {
+    el.classList.toggle('active', i === n);
+  });
+  // Highlight corresponding table row
+  document.querySelectorAll('#resultsBody tr').forEach((tr, i) => {
+    tr.classList.toggle('active', i === n && n < bonds.length);
+  });
+}
+
+// ──────────────────────────────────────────────
+// Master update
+// ──────────────────────────────────────────────
+function update() {
+  const result = bootstrap();
+  resizeCanvas();
+  drawChart(result);
+  updateTable(result);
+}
+
+// Toggle listeners
+document.getElementById('showForward').addEventListener('change', update);
+document.getElementById('showPar').addEventListener('change', update);
+
+// Init
+window.addEventListener('resize', update);
+buildSliders();
+update();
+</script>
+</body>
+</html>

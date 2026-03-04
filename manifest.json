@@ -1,0 +1,40 @@
+{
+  "spoke_id": "yield-curve",
+  "label": "Yield Curve Construction",
+  "models": [
+    {
+      "id": "bootstrapping",
+      "name": "Bootstrapping the Zero Curve",
+      "short_description": "Sequentially extract zero-coupon rates from observed coupon bond prices to build the foundational discount curve used across all fixed income pricing.",
+      "family": "yield-curve",
+      "subcategory": "construction",
+      "tags": ["zero-rate", "discount-factor", "par-curve", "strip", "interpolation"],
+      "year_introduced": 1980,
+      "key_paper": "Fama & Bliss (1987)",
+      "complexity": "foundational",
+      "color_accent": "#58a6ff",
+      "use_cases": ["bond pricing", "swap valuation", "discount curve construction"],
+      "formula": "P = sum C/(1+z_i)^i + F/(1+z_n)^n",
+      "products": ["government bonds", "interest rate swaps", "FRAs"],
+      "related_models": ["nelson-siegel", "vasicek"],
+      "key_insight": "Each successive bond maturity reveals one new zero rate, building the curve sequentially from short to long maturities."
+    },
+    {
+      "id": "nelson-siegel",
+      "name": "Nelson-Siegel Model",
+      "short_description": "A parsimonious parametric model that captures the level, slope, and curvature of the yield curve with just four parameters, widely used by central banks.",
+      "family": "yield-curve",
+      "subcategory": "parametric",
+      "tags": ["parametric", "level-slope-curvature", "central-bank", "fitting", "term-structure"],
+      "year_introduced": 1987,
+      "key_paper": "Nelson & Siegel (1987)",
+      "complexity": "intermediate",
+      "color_accent": "#58a6ff",
+      "use_cases": ["yield curve fitting", "central bank reporting", "relative value analysis"],
+      "formula": "y(\u03c4) = \u03b2\u2080 + \u03b2\u2081(1-e^(-\u03c4/\u03bb))/(\u03c4/\u03bb) + \u03b2\u2082((1-e^(-\u03c4/\u03bb))/(\u03c4/\u03bb) - e^(-\u03c4/\u03bb))",
+      "products": ["government bonds", "yield curve forecasting"],
+      "related_models": ["bootstrapping", "svensson"],
+      "key_insight": "Three factors (level, slope, curvature) explain >95% of yield curve variation."
+    }
+  ]
+}
